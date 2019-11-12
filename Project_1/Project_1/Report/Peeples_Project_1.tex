@@ -1,0 +1,186 @@
+\documentclass[conference]{IEEEtran}
+\makeatletter
+\def\endthebibliography{%
+	\def\@noitemerr{\@latex@warning{Empty `thebibliography' environment}}%
+	\endlist
+}
+\makeatother
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{subcaption}
+\graphicspath{{./Images/}}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{EEL 6814 Project 1: Classification of Fashion-MNIST Using Multilayer Perceptrons\\}
+
+\author{\IEEEauthorblockN{Joshua Peeples}
+\IEEEauthorblockA{\textit{Department of Electrical and Computer Engineering} \\
+\textit{University of Florida}\\
+Gainseville, FL \\
+jpeeples@ufl.edu}}
+
+\maketitle
+
+\begin{abstract}
+In this project, the classification of Fashion-MNIST dataset using multilayer perceptrons (MLPs) was studied. The depth and width of MLPs as well as the effects of dimensionality reduction are explored. Through both quantitative and qualitative metrics, an MLP with varying width and depth coupled with PCA will lead to optimal performance on the Fashion-MNIST dataset. 
+\end{abstract}
+
+\begin{IEEEkeywords}
+Deep Learning, MLPs, classification, dimensionality reduction
+\end{IEEEkeywords}
+
+\section{Introduction}
+	Machine learning is used in several real-world applications such as autonomous vehicles \cite{curio1999walking}, automated medical diagnosis \cite{wang2014mitosis}, and explosive hazard detection \cite{anderson2012combination}. The typical pipeline consisted of preprocessing the data, extracting hand-designed features, and applying an algorithm to achieve a task. Hand-crafted features were useful in several applications, but the process to design these features can be difficult. Feature engineering is an expensive process in terms of labor, computation, and time. Domain knowledge and expertise are required to design optimal features for each application \cite{ng2013machine}. Additionally, this process often involved empirically determining the best parameters for each descriptor resulting in an increase of computation and time expenses. 
+	\par In recent work, these handcrafted approaches are often substituted for deep learning to address some of the issues associated with designing features. Deep learning has out performed several traditional approaches and achieved state-of-the-art results in various tasks such as classification, segmentation and object recognition \cite{he2016deep,krizhevsky2012imagenet,liang2015recurrent,long2015fully}. Various benchmark datasets such as Imagenet\cite{deng2009imagenet} and MNIST digits\cite{lecun1998gradient} have been used throughout the literature to test these deep learning models. MNIST has served as the de facto standard dataset for several years. Recently, a new dataset, Fashion-MNIST \cite{xiao2017fashion}, was developed to provide an alternative to the MNIST digits dataset. In this work, a multilayer perceptron (MLP), is used to classify the Fashion-MNIST dataset. Various MLP architectures were explored to determine if going wider (more units in a layer), deeper (more layers), or a combination of the two architecture designs would optimize performance.
+
+\section{Methods}
+	The structures of MLPs are determined by the number of 1) units and 2) layers. Two important design considerations are the width (number of units in each layer) and the depth (number of layers) of the network. To examine the impact of both, the number of units in each layer was varied from 10, 25, and 50 while the number of hidden layers was varied from 1, 2, and 4. The structure for each network are shown in Table \ref{Struct}. A total of 9 architectures were investigated.
+	
+\begin{table}[t]
+	\centering
+	\caption{Structure of MLPs}
+	\begin{tabular}{|c|c|c|}
+		\hline
+		MLP Name & \# of Units in Hidden Layers & \# of Hidden Layers \\ \hline
+		Net 1    & 10                           & 1                   \\ \hline
+		Net 2    & 25                           & 1                   \\ \hline
+		Net 3    & 50                           & 1                   \\ \hline
+		Net 4    & 10                           & 2                   \\ \hline
+		Net 5    & 25                           & 2                   \\ \hline
+		Net 6    & 50                           & 2                   \\ \hline
+		Net 7    & 10                           & 3                   \\ \hline
+		Net 8    & 25                           & 3                   \\ \hline
+		Net 9    & 50                           & 3                   \\ \hline
+	\end{tabular}
+	\label{Struct}
+\end{table}
+	
+	Additionally, due to the high dimensionality of the each sample in the dataset (784 pixels), various dimensionality reduction techniques were explored. The dimensionality reduction methods used were the following: principal component analysis (PCA), independent component analysis (ICA), and linear discriminant analysis (LDA). For PCA, the number of components was selected so that 95\% of the variance was captured. The same number of components returned used for PCA was also used in ICA to serve as a comparison between the two unsupervised approaches. LDA was used to project the data to have a dimensionality of nine (the number of classes in Fashion-MNIST minus one). To visualize each dimensionality reduction approach, t-distributed Stochastic Neighborhood Embedding (t-SNE) was performed on the projected training data (Figure \ref{fig:tsne}).
+	Before applying dimensionality reduction,the dataset is normalized by subtracting the mean of the training data and scaling by the variance of the training data.  
+	
+	\begin{figure*}[htb]
+	\begin{subfigure}{.32\textwidth}{
+			\includegraphics[width=\textwidth]{Images/PCA_TSNE.png}
+			\caption{PCA}
+			\label{fig:PCA}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.32\textwidth}{
+			\includegraphics[width=\textwidth]{Images/ICA_TSNE.png}
+			\caption{ICA}
+			\label{fig:ICA}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.32\textwidth}{
+			\includegraphics[width=\textwidth]{Images/LDA_TSNE.png}
+			\caption{LDA}
+			\label{fig:LDA}
+		}
+	\end{subfigure} 
+	
+	\caption{t-SNE Visualiations of Fashion-MNIST training data.}
+	\centering
+	\label{fig:tsne}
+\end{figure*} 
+
+	Fashion-MNIST consists of 60,000 training and 10,000 test images. The training data was partitioned into 2/3 for training and 1/3 for validation using 3-fold stratified cross validation to mitigate some bias and variance in each model as well as maintain class balance among the dataset. Also, for a fair comparison of each model, each fold contained the same data (set the random seed to be the same before data split). The training settings for each model were the following: cross entropy loss function, learning rate ($\eta$) = .001, Adam\cite{kingma2014adam} optimization, number of epochs = 100, batch size = 1024, and relu activation on all hidden layers. The model that achieved the best validation accuracy was saved during training. Each network was then applied to the holdout test set to further evaluate performance.
+	  
+\section{Results}
+
+\begin{figure*}[t]
+	\begin{subfigure}{.32\textwidth}{
+			\includegraphics[width=\textwidth]{Images/PCA_Fold1_LC.png}
+			\caption{Fold 1}
+			\label{fig:Fold1LC}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.32\textwidth}{
+			\includegraphics[width=\textwidth]{Images/PCA_Fold2_LC.png}
+			\caption{Fold 2}
+			\label{fig:Fold2LC}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.32\textwidth}{
+			\includegraphics[width=\textwidth]{Images/PCA_Fold3_LC.png}
+			\caption{Fold 3}
+			\label{fig:Fold3LC}
+		}
+	\end{subfigure} 
+	
+	\caption{Learning Curves for Net 6 using PCA.}
+	\centering
+	\label{fig:LC}
+\end{figure*} 
+
+\begin{figure*}[htb!]
+	\begin{subfigure}{.24\textwidth}{
+			\includegraphics[width=\textwidth]{Images/PCA_Fold1_CM.png}
+			\caption{Fold 1}
+			\label{fig:Fold1CM}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.24\textwidth}{
+			\includegraphics[width=\textwidth]{Images/PCA_Fold2_CM.png}
+			\caption{Fold 2}
+			\label{fig:Fold2CM}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.24\textwidth}{
+			\includegraphics[width=\textwidth]{Images/PCA_Fold3_CM.png}
+			\caption{Fold 3}
+			\label{fig:Fold3CM}
+		}
+	\end{subfigure}
+~
+	\begin{subfigure}{.24\textwidth}{
+		\includegraphics[width=\textwidth]{Images/PCA_Avg.png}
+		\caption{Average}
+		\label{fig:AvgCM}
+	}
+\end{subfigure}  
+	
+	\caption{Test Confusion Matrices for Net 6 using PCA.}
+	\centering
+	\label{fig:CM}
+\end{figure*} 
+
+The average test accuracies of each model and dimensionality technique are shown in Table \ref{Acc}. The best performing architecture and dimesionality reduction method was Net 6 (two hidden layers and 50 units in each layer) using PCA. To gain more insight into this model, the learning curves and confusion matrices for this Net 6 with PCA are displayed in Figure \ref{fig:LC} and Figure \ref{fig:CM} respectively. 
+\begin{table}[t]
+	\centering
+	\caption{Average Test Accuracies}
+	\begin{tabular}{|c|c|c|c|}
+		\hline
+		& PCA            & ICA            & LDA \\ \hline
+		Net 1 & 87.05$\pm$0.58\% & 83.75$\pm$1.03\% & 84.44$\pm$0.09\% \\ \hline
+		Net 2 & 89.39$\pm$1.12\% & 85.00$\pm$0.81\% & 84.84$\pm$0.05\%    \\ \hline
+		Net 3 & 91.13$\pm$1.69\% & 85.43$\pm$0.66\% & 85.12$\pm$0.05\%    \\ \hline
+		Net 4 & 87.39$\pm$0.82\% & 79.60$\pm$3.51\% & 84.49$\pm$0.03\%    \\ \hline
+		Net 5 & 89.93$\pm$1.31\% & 82.96$\pm$1.69\% & 85.08$\pm$0.08\%    \\ \hline
+		Net 6 & \textbf{91.37$\pm$1.88}\% & \textbf{87.03$\pm$1.90}\% & 85.48$\pm$.09\%    \\ \hline
+		Net 7 & 87.31$\pm$0.89\% & 80.45$\pm$3.80\% &84.68$\pm$0.06\% \\ \hline
+		Net 8 & 89.84$\pm$1.55\% & 83.92$\pm$1.92\% &85.18$\pm$0.08\%     \\ \hline
+		Net 9 & 90.84$\pm$1.67\% & 86.78$\pm$2.03\% &\textbf{85.67$\pm$0.12}\%     \\ \hline
+	\end{tabular}
+\label{Acc}
+\end{table}
+
+\section{Discussion}
+	For the dimensionality reduction technique, PCA performs the best over ICA and LDA. A possible reason for this is that PCA maximize the variance of the data and results in features that are uncorrelated. This will be advantageous to the network in learning the decision boundaries for the data. ICA does not perform as well as PCA because it assumes the features are independent and uncorrelated \cite{de2000introduction}. LDA did not perform better than PCA possibly due to LDA not generalizing well to the test dataset. As shown in Figure \ref{fig:tsne}, LDA maximizes the inter-class variance while minimizing the intra-class variance. This will work well for the training data but not necessarily for the test data as shown in Table \ref{Acc}. There is not much variance in the results of each network due to the each model learning similar weights since the training data is of lower dimension of PCA when using PCA. Another limitation of these methods is that each one performs a linear transformation on the data. In future studies, non-linear approaches such as kernel PCA or isometric mapping should be investigated as well. 
+	
+	For the model architecture, Net 6 achieved the best performance using PCA and ICA and had the second highest accuracy with LDA. The network had the maximum width (50 units) and the 2nd highest depth. This shows that a combination of depth and width should be used as opposed to only going deep or wide. Also, the learning curves in Figure \ref{fig:LC} show that the model learned well training on folds 2 and 3 but the model overfitted quickly when validating on folds 2 and 3. The curves suggests that a possible solution is to use a smaller learning rate so the model can learn properly. Also, the results of the confusion matrices are good as well. The classes that the model struggled with the most was the t-shirt/top and shirt. This result makes since as they both are similar articles of clothing. 
+
+\section{Conclusion}
+	In this project, various architectures of MLPs and dimensionality reduction techniques were explored. As a result of the experiments, PCA with a MLP of varying width and depth is most effective. Future studies could involve varying the number of units in each of the hidden layers (e.g., 50 units in first hidden layer and 25 in the second) and also varying training settings such as the learning rate to improve performance of the model.
+\bibliographystyle{IEEEtran}
+\bibliography{egbib}
+
+
+\end{document}

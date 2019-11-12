@@ -1,0 +1,10 @@
+# Ignore all text files
+*.txt
+# Ignore all zip files
+*.zip
+# Ignore all word/pdf files
+*.pdf
+*.docx
+
+#Ignore images
+*.png
