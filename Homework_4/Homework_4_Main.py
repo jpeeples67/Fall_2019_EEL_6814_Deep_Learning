@@ -38,7 +38,7 @@ for name in dim_red_names:
         if not os.path.exists(Network_folder):
             os.makedirs(Network_folder)
         num_features = Reduced_datasets[name]['train'].files.shape[1]
-        model = Networks[network+1](in_features=num_features)
+        model = Networks[network](in_features=num_features)
         optimizer = optim.Adam(model.parameters(),lr=.001)
         criterion = nn.CrossEntropyLoss()
         #Compute number of parameters once and save to Network folder

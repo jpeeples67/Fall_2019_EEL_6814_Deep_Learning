@@ -6,17 +6,15 @@ Created on Tue Oct 29 19:13:58 2019
 """
 from torchvision import datasets, transforms
 from torch.utils.data import Dataset
-from sklearn.decomposition import PCA, FastICA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+import torch.nn.functional as F
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import torch
-from barbar import Bar
 import pdb
 import numpy as np
 
 #Number of images to process at a time
-numClasses = 10
-var = .95
+var = .85
 np.random.seed(0)
 class Create_dataset(Dataset):
     def __init__(self,data_tuple,transform=None):
@@ -37,26 +35,48 @@ class Create_dataset(Dataset):
 
         return img, label
 #Code to prepare train and test dataset using dimensionality reduction
-data_transforms = transforms.ToTensor()
-train_dataset = datasets.FashionMNIST('../data', train=True, download=True,transform = data_transforms)
-test_dataset = datasets.FashionMNIST('../data', train=False, download=True, transform = data_transforms)
+transforms = transforms.ToTensor()
+full_train_dataset = datasets.FashionMNIST('../data', train=True, 
+                                      download=True,transform = transforms)
+full_test_dataset = datasets.FashionMNIST('../data', train=False, download=True,
+                                     transform = transforms)
+full_train_dataset_batch = full_train_dataset.data.unsqueeze(1)
+full_test_dataset_batch = full_test_dataset.data.unsqueeze(1)
+mid_train_dataset = F.interpolate(full_train_dataset_batch.to('cpu',dtype=float), size=[14,14])
+mid_test_dataset = F.interpolate(full_test_dataset_batch.to('cpu',dtype=float), size=[14,14])
+small_train_dataset = F.interpolate(full_train_dataset_batch.to('cpu',dtype=float), size=[7,7])
+small_test_dataset = F.interpolate(full_test_dataset_batch.to('cpu',dtype=float), size=[7,7])
 
 #Flatten data to perform dimensionality reduction
-scaler = StandardScaler()
-train_data = scaler.fit_transform(torch.flatten(train_dataset.data,start_dim=1).numpy())
-test_data = scaler.transform(torch.flatten(test_dataset.data,start_dim=1).numpy())
-train_targets = train_dataset.targets
-test_targets = test_dataset.targets
+scaler_full = StandardScaler()
+scaler_mid = StandardScaler()
+scaler_small = StandardScaler()
+#Normalize each scale of the data
+full_train_data = scaler_full.fit_transform(torch.flatten(full_train_dataset.data,start_dim=1).numpy())
+full_test_data = scaler_full.transform(torch.flatten(full_test_dataset.data,start_dim=1).numpy())
+mid_train_data = scaler_mid.fit_transform(torch.flatten(mid_train_dataset.squeeze(1),start_dim=1).numpy())
+mid_test_data = scaler_mid.transform(torch.flatten(mid_test_dataset.squeeze(1),start_dim=1).numpy())
+small_train_data = scaler_small.fit_transform(torch.flatten(small_train_dataset.squeeze(1),start_dim=1).numpy())
+small_test_data = scaler_small.transform(torch.flatten(small_test_dataset.squeeze(1),start_dim=1).numpy())
+train_targets = full_train_dataset.targets
+test_targets = full_test_dataset.targets
 
 #Run dimensionality reduction
 print('Prepping data with dimensionality reduction')
 print('PCA on training and test data')
-pca = PCA(n_components=var)
-pca_train_data = torch.from_numpy(pca.fit_transform(train_data))
-pca_test_data = torch.from_numpy(pca.transform(test_data))
-num_comps = pca_train_data.shape[1]
+full_pca = PCA(n_components=var)
+mid_pca = PCA(n_components=var)
+small_pca = PCA(n_components=var)
+full_pca_train_data = torch.from_numpy(full_pca.fit_transform(full_train_data))
+full_pca_test_data = torch.from_numpy(full_pca.transform(full_test_data))
+mid_pca_train_data = torch.from_numpy(mid_pca.fit_transform(mid_train_data))
+mid_pca_test_data = torch.from_numpy(mid_pca.transform(mid_test_data))
+small_pca_train_data = torch.from_numpy(small_pca.fit_transform(mid_train_data))
+small_pca_test_data = torch.from_numpy(small_pca.transform(mid_test_data))
 
-#Create dataset object for dataloader in main code
+#Create dataset object for dataloader in main code, combine multiscale data
+pca_train_data = torch.cat((full_pca_train_data,mid_pca_train_data,small_pca_train_data),dim=1)
+pca_test_data = torch.cat((full_pca_test_data,mid_pca_test_data,small_pca_test_data),dim=1)
 PCA_train = Create_dataset((pca_train_data,train_targets))
 PCA_test = Create_dataset((pca_test_data,test_targets))
 

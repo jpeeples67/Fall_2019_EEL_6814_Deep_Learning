@@ -79,7 +79,7 @@ def Summary_Val_Test_CM(Val_cm,Test_cm,val_acc,test_acc,folder):
         output.write('Average accuracy: ' + str(np.mean(val_acc)) + ' Std: ' + str(np.std(val_acc)))
 
     with open((folder + 'Test Overall_Accuracy.txt'), "w") as output:
-        output.write('Average accuracy: ' + str(np.mean(val_acc)) + ' Std: ' + str(np.std(val_acc)))
+        output.write('Average accuracy: ' + str(np.mean(test_acc)) + ' Std: ' + str(np.std(test_acc)))
     
 def Learning_Curve(Validation_Accuracy_track,Validation_Error_track,
                    Training_Error_track,Training_Accuracy_track,Best_epoch,folder):
