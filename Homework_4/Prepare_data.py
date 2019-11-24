@@ -42,10 +42,10 @@ full_test_dataset = datasets.FashionMNIST('../data', train=False, download=True,
                                      transform = transforms)
 full_train_dataset_batch = full_train_dataset.data.unsqueeze(1)
 full_test_dataset_batch = full_test_dataset.data.unsqueeze(1)
-mid_train_dataset = F.interpolate(full_train_dataset_batch.to('cpu',dtype=float), size=[14,14])
-mid_test_dataset = F.interpolate(full_test_dataset_batch.to('cpu',dtype=float), size=[14,14])
-small_train_dataset = F.interpolate(full_train_dataset_batch.to('cpu',dtype=float), size=[7,7])
-small_test_dataset = F.interpolate(full_test_dataset_batch.to('cpu',dtype=float), size=[7,7])
+mid_train_dataset = F.interpolate(full_train_dataset_batch.double(), size=[14,14])
+mid_test_dataset = F.interpolate(full_test_dataset_batch.double(), size=[14,14])
+small_train_dataset = F.interpolate(full_train_dataset_batch.double(), size=[7,7])
+small_test_dataset = F.interpolate(full_test_dataset_batch.double(), size=[7,7])
 
 #Flatten data to perform dimensionality reduction
 scaler_full = StandardScaler()
