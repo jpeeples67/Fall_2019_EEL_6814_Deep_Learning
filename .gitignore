@@ -10,3 +10,5 @@
 *.png
 #Ignore data
 /data
+#Ignore Results
+/Results
