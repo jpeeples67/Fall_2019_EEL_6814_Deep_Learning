@@ -11,46 +11,67 @@ import numpy as np
 import torch.nn as nn
 import torch
 import pdb
-from MGdataloader import MG_data
-from torchvision import transforms
+from torchvision import datasets,transforms
 from train_model import train
 import matplotlib.pyplot as plt
+from torch.utils.data import Dataset
+from sklearn.preprocessing import StandardScaler
 
 
 folder = 'Results/'
-data_filename = 'MGdata.txt'
 current_directory = os.getcwd()
 final_directory = os.path.join(current_directory, folder)
 
 #Window size, number of epochs, batch size, learning rate and loss function to use
-N = 20
+N = 100
 epochs = 100
 batch_size = 64
 eta = .01
 Noise = False
 device = 'cpu'
-loss_fxn = 'MEE' #MSE or MEE
+loss_fxn = 'MSE' #MSE or MEE
 bandwidth = .1
 
 #Load data to compute bandwidth using Silverman's rule
 
-#Create FIR filter
-class FIR_filter(nn.Module):
-    def __init__(self,model_order=20):
-        super(FIR_filter,self).__init__()
-        self.fc1 = nn.Linear(model_order,1,bias=False)
-        
+#Create Stacked autoencoder
+class SAE(nn.Module):
+    def __init__(self,bottleneck=100):
+        super(SAE,self).__init__()
+        self.fc1 = nn.Linear(784,500)
+        self.fc2 = nn.Linear(500,200)
+        self.fc3 = nn.Linear(200,bottleneck)
+        self.fc4 = nn.Linear(bottleneck,200)
+        self.fc5 = nn.Linear(200,500)
+        self.fc6 = nn.Linear(500,784)
+        self.activation = nn.ReLU()
     def forward(self,x):
-        x = self.fc1(x)
+        #Encoder
+        x = self.activation(self.fc1(x))
+        x = self.activation(self.fc2(x))
+        x = self.activation(self.fc3(x))
+        #Decode
+        x = self.activation(self.fc4(x))
+        x = self.activation(self.fc5(x))
+        x = self.fc6(x)
         return x
 
 #Load data and create dataloader
-MG_series = MG_data(data_filename,window=N,Noise=Noise)
+data_transforms = transforms.ToTensor()
+train_dataset = datasets.FashionMNIST('../data', train=True, download=True,transform = data_transforms)
+test_dataset = datasets.FashionMNIST('../data', train=False, download=True, transform = data_transforms)
+
+#Flatten data and normalize
+scaler = StandardScaler()
+train_data = scaler.fit_transform(torch.flatten(train_dataset.data,start_dim=1).numpy())
+test_data = scaler.transform(torch.flatten(test_dataset.data,start_dim=1).numpy())
+train_targets = train_dataset.targets
+test_targets = test_dataset.targets
 MG_dataloader = torch.utils.data.DataLoader(dataset=MG_series,batch_size=batch_size,
                                             shuffle=False,num_workers=0)
 
 #Define FIR filter of order N, loss function, and optimizer
-model = FIR_filter(model_order=N)
+model = SAE(bottleneck=N)
 optimizer = optim.Adam(model.parameters(),lr=eta)
 
 #Train model and get predictions

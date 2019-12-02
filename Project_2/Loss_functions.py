@@ -28,6 +28,30 @@ def MEE(outputs,targets,bw):
     loss = torch.sum(const*torch.exp(-((diff)**2)/(2*(bw**2))))
             
     #Normalize
-    loss = torch.sum(loss)/(len(error)**2) 
+    loss = torch.sum(loss)/(n**2) 
     
     return loss
+#Compute maximum cross entropy with kernel bandwidth = bw
+def MCE(outputs,targets,bw):
+    
+    #Get number of samples
+    n = targets.size(0)
+    
+    #Compute pairwise distances of error
+    #Source for pairwise distance calculation:
+    # https://github.com/jiyanggao/Video-Person-ReID/blob/master/losses.py#L47-L89
+    desired = torch.pow(targets,2).sum(dim=1,keepdim=True).expand(n,n)
+    y = torch.pow(outputs,2).sum(dim=1,keepdim=True).expand(n,n)
+    diff = desired + y
+    diff.addmm_(1,-2,targets,outputs.t())
+    diff = diff.clamp(min=1e-12).sqrt()
+
+    #Compute normalizing constant
+    const = 1/(np.sqrt(2*np.pi)*bw)
+    loss = torch.sum(const*torch.exp(-((diff)**2)/(2*(bw**2))))
+            
+    #Normalize
+    loss = loss/(n**2) 
+    
+    return loss
+    
