@@ -38,22 +38,18 @@ bandwidth = .1
 class SAE(nn.Module):
     def __init__(self,bottleneck=100):
         super(SAE,self).__init__()
-        self.fc1 = nn.Linear(784,500)
-        self.fc2 = nn.Linear(500,200)
-        self.fc3 = nn.Linear(200,bottleneck)
-        self.fc4 = nn.Linear(bottleneck,200)
-        self.fc5 = nn.Linear(200,500)
-        self.fc6 = nn.Linear(500,784)
-        self.activation = nn.ReLU()
+        
+        self.encoder = nn.Sequential(nn.Linear(784,500),nn.ReLU(),
+                                     nn.Linear(500,200),nn.ReLU(),
+                                     nn.Linear(200,bottleneck),nn.ReLU())
+        self.decoder = nn.Sequential(nn.Linear(bottleneck,200),nn.ReLU(),
+                                     nn.Linear(200,500),nn.ReLU(),
+                                     nn.Linear(500,784),nn.ReLU())
     def forward(self,x):
         #Encoder
-        x = self.activation(self.fc1(x))
-        x = self.activation(self.fc2(x))
-        x = self.activation(self.fc3(x))
-        #Decode
-        x = self.activation(self.fc4(x))
-        x = self.activation(self.fc5(x))
-        x = self.fc6(x)
+        x = self.encoder(x)
+        #Decoder
+        x = self.decoder(x)
         return x
 
 #Load data and create dataloader
