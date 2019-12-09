@@ -7,27 +7,21 @@ Main code for project
 
 import os
 import torch.optim as optim
-import numpy as np
-import torch.nn as nn
 import torch
 import pdb
-from torchvision import datasets,transforms
 from Functions.train_model import train_SAE,train_classifier
-import matplotlib.pyplot as plt
-from torch.utils.data import Dataset
-from sklearn.preprocessing import StandardScaler
 from Functions.Prepare_data import dataloaders_dict
 from Functions.Get_Results import SAE_results,Classifier_results
 from Functions.Networks import SAE,MLP,CNN
 
 
-folder = 'Results/'
+folder = 'Results/SAE/'
 current_directory = os.getcwd()
 final_directory = os.path.join(current_directory, folder)
 
 #Window size, number of epochs, batch size, learning rate and loss function to use
 bottleneck_sizes = [100,50,25,12,2]
-epochs = 100
+epochs = 50
 eta = .001
 num_classes = 10
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -56,7 +50,7 @@ for M in bottleneck_sizes:
     #Train MLP and classify test set
     (MLP_classifier, best_MLP_model_wts, train_error_history,val_error_history,best_acc,
                 time_elapsed,GT,predictions) = train_classifier(MLP_classifier,
-                                           dataloaders_dict,MLP_optimizer,num_epochs=epochs)
+                                           dataloaders_dict,MLP_optimizer,device=device,num_epochs=epochs)
     #Get results for MLP classifier
     Classifier_results(final_directory,MLP_classifier,best_MLP_model_wts,
                        train_error_history,val_error_history,time_elapsed,best_acc,
@@ -72,7 +66,7 @@ CNN_optimizer = optim.Adam(CNN_classifier.parameters(),lr=eta)
 
 (CNN_classifier, best_CNN_model_wts, train_error_history,val_error_history,best_acc,
             time_elapsed,GT,predictions) = train_classifier(CNN_classifier,
-                                       dataloaders_dict,CNN_optimizer,num_epochs=epochs)
+                                       dataloaders_dict,CNN_optimizer,device=device,num_epochs=epochs)
 
 #Get results for CNN classifier
 Classifier_results(final_directory,CNN_classifier,best_CNN_model_wts,

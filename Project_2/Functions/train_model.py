@@ -13,7 +13,7 @@ import time
 import copy
 import pdb
 from barbar import Bar
-from Functions.Loss_functions import MEE, MCE
+from Functions.Loss_functions import QMI, MCE
 
 def train_SAE(model, dataloaders, optimizer, device='cpu',num_epochs=25):
     since = time.time()
@@ -63,7 +63,7 @@ def train_SAE(model, dataloaders, optimizer, device='cpu',num_epochs=25):
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
 
-            epoch_loss = running_loss / len(dataloaders[phase].dataset)
+            epoch_loss = running_loss / len(dataloaders[phase].sampler)
             
             if phase == 'train':
                 train_error_history.append(epoch_loss)
@@ -92,7 +92,7 @@ def train_SAE(model, dataloaders, optimizer, device='cpu',num_epochs=25):
     
     return (model, best_model_wts, train_error_history,val_error_history,best_loss,time_elapsed)
     
-def train_classifier(model, dataloaders, optimizer,criterion = 'CE', device='cpu',num_epochs=25,bw=.1):
+def train_classifier(model, dataloaders, optimizer,criterion = 'CE', device='cpu',num_epochs=25,bw=.1,ITL=False):
     since = time.time()
 
     val_acc_history = []
@@ -131,8 +131,8 @@ def train_classifier(model, dataloaders, optimizer,criterion = 'CE', device='cpu
                     
                     # forward pass
                     outputs = model(inputs)
-                    if criterion == 'MSE': #Put MI for mutual information
-                        loss = MEE(outputs, labels,bw)
+                    if criterion == 'QMI': #Put MI for mutual information
+                        loss = QMI(outputs, labels,bw)
                     elif criterion == 'MCE': #MCE
                         loss = MCE(outputs,labels,bw)
                     else:
@@ -146,10 +146,16 @@ def train_classifier(model, dataloaders, optimizer,criterion = 'CE', device='cpu
     
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
-                    running_corrects += torch.sum(preds == labels.data)
+                    #If ITL losses, one-hot encoded labels needed to be 
+                    #converted to integers
+                    if(ITL):
+                        _, true_labels = torch.max(labels,1)
+                        running_corrects += torch.sum(preds == true_labels.data)
+                    else:
+                        running_corrects += torch.sum(preds == labels.data)                        
 
-            epoch_loss = running_loss / len(dataloaders[phase].dataset)
-            epoch_acc = running_corrects.double() / len(dataloaders[phase].dataset)
+            epoch_loss = running_loss / len(dataloaders[phase].sampler)
+            epoch_acc = running_corrects.double() / len(dataloaders[phase].sampler)
             
             if phase == 'train':
                 train_error_history.append(epoch_loss)
@@ -167,6 +173,7 @@ def train_classifier(model, dataloaders, optimizer,criterion = 'CE', device='cpu
             if phase == 'val':
                 val_error_history.append(epoch_loss)
                 val_acc_history.append(epoch_acc)
+            
     print()
 
   
@@ -180,17 +187,18 @@ def train_classifier(model, dataloaders, optimizer,criterion = 'CE', device='cpu
     model.load_state_dict(best_model_wts)
     
     #Get predictions for test set
-    GT,predictions = predict(dataloaders['test'],model,device)
+    GT,predictions = predict(dataloaders['test'],model,device,ITL=ITL)
    
     return (model, best_model_wts, train_error_history,val_error_history,best_acc,
             time_elapsed,GT,predictions)
 
-def predict(dataloader,model,device):
+def predict(dataloader,model,device,ITL=False):
     #Initialize and accumalate ground truth and predictions
     GT = np.array(0)
     Predictions = np.array(0)
     running_corrects = 0
     model = model.to(device)
+    model = nn.Sequential(model,nn.Softmax(dim=1))
     model.eval()
         # Iterate over data.
     with torch.no_grad():
@@ -203,12 +211,17 @@ def predict(dataloader,model,device):
             outputs = model(inputs)
             _, preds = torch.max(outputs,1)
     
-            #If validation, accumulate labels for confusion matrix
-            GT = np.concatenate((GT,labels.detach().cpu().numpy()),axis=None)
+            #If test, accumulate labels for confusion matrix
+            if(ITL):
+                 _, labels = torch.max(labels,1)
+                 GT = np.concatenate((GT,labels.detach().cpu().numpy()),axis=None)
+            else:
+                 GT = np.concatenate((GT,labels.detach().cpu().numpy()),axis=None)
+           
             Predictions = np.concatenate((Predictions,preds.detach().cpu().numpy()),axis=None)
             running_corrects += torch.sum(preds == labels.data)
 
-    test_acc = running_corrects.double() / len(dataloader.dataset)
+    test_acc = running_corrects.double() / len(dataloader.sampler)
     print('Test Accuracy: {:4f}'.format(test_acc))           
 
     return GT[1:],Predictions[1:]

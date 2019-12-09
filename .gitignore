@@ -10,5 +10,6 @@
 *.png
 #Ignore data
 /data
-#Ignore Results
+#Ignore Results and report
 /Results
+/Report

@@ -16,7 +16,7 @@ class SAE(nn.Module):
                                      nn.Linear(200,bottleneck),nn.ReLU())
         self.decoder = nn.Sequential(nn.Linear(bottleneck,200),nn.ReLU(),
                                      nn.Linear(200,500),nn.ReLU(),
-                                     nn.Linear(500,784))     
+                                     nn.Linear(500,784),nn.Sigmoid())     
     def forward(self,x):
         #Flatten the input
         x = torch.flatten(x,start_dim=1)
@@ -69,3 +69,21 @@ class CNN(nn.Module):
         x = self.dropout(x)
         x = self.fc2(x)
         return x
+    
+#Create MLP classifier that uses encoder from SAE
+class MLP_ITL(nn.Module):
+    def __init__(self,bottleneck=100,num_classes=10):
+        super(MLP_ITL,self).__init__()
+        self.encoder = nn.Sequential(nn.Linear(784,500),nn.ReLU(),
+                                     nn.Linear(500,200),nn.ReLU(),
+                                     nn.Linear(200,bottleneck),nn.ReLU())
+        self.fc = nn.Linear(self.encoder[-2].out_features,num_classes) 
+        
+    def forward(self,x):
+        #Flatten the input
+        x = torch.flatten(x,start_dim=1)
+        #Encoder
+        x = self.encoder(x)
+        #MLP
+        x = self.fc(x)
+        return x  

@@ -1,0 +1,265 @@
+\documentclass[conference]{IEEEtran}
+\makeatletter
+\def\endthebibliography{%
+	\def\@noitemerr{\@latex@warning{Empty `thebibliography' environment}}%
+	\endlist
+}
+\makeatother
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{subcaption}
+\graphicspath{{./Images/}}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{EEL 6814 Project 2: Comprehensive Comparison of Machine Learning Algorithms for Classification of Fashion-MNIST Dataset\\}
+
+\author{\IEEEauthorblockN{Joshua Peeples}
+\IEEEauthorblockA{\textit{Department of Electrical and Computer Engineering} \\
+\textit{University of Florida}\\
+Gainseville, FL \\
+jpeeples@ufl.edu}}
+
+\maketitle
+
+\begin{abstract}
+In this project, various machine learning approaches were investigated for the classification of Fashion-MNIST dataset. The main three methods were 1) a semi-supervised approach using stacked autoencoders (SAEs) for dimensionality reduction and multilayer perceptrons (MLPs) for classification; 2) a supervised approach using a convolutional neural network (CNN) classifier, and 3) a supervised approach using an encoding network trained with two information theoretic losses, maximum cross entropy (XEnt) and maximum mutual information (MMI). Each approach achieves comparable performance with the CNN performing the best. In depth analysis of the performance of each method is performed through confusion matrices, computation time, performance metrics (accuracy and loss), and t-SNE visualizations of the features of the training data. 
+\end{abstract}
+
+\begin{IEEEkeywords}
+Deep Learning, MLPs, classification, dimensionality reduction, Information Theoretic Learning
+\end{IEEEkeywords}
+
+\section{Introduction}
+	Machine learning is used in a variety of applications and a common task is classification. Generally, supervised methods are used for classification such as k-Nearest Neighbors, SVMs, and convolutional neural networks (CNNs). However, some have used unsupervised techniques to reduce the dimensionality of the data to improve the performance of classifiers. Some of these techniques include principal component analysis (PCA) and Fisher's linear discriminant analysis (LDA). One neural approach for dimensionality reduction is a stacked autoencoder (SAE) where the input is used as the desired to learn a smaller representation of the data. Another approach for classification (and other tasks such as unsupervised and reinforcement learning) is the use information theoretic learning (ITL) for machine learning models\cite{principe2010information}. Instead of backprogating error, information can be injected into the network to update the models instead of error. In this work, the use of SAEs for dimensionality reduction and classification with an MLP, CNN for classification, and ITL models for classification. 
+\section{Methods}
+	The first approach consisted of training SAEs of varying bottleneck sizes for dimensionality reduction and using the features from the bottleneck layer (i.e., code) for classification. The structure of each SAE is shown in Figure \ref{fig:SAE} and five bottleneck size (M) were used: 100, 50, 25, 12, and 2. The network consisted of five hidden layers and the relu activation function was applied to each layer. On the output layer, a sigmoid activation was used to map the values to between 0 and 1 since the data was normalized to this range. Mean squared error was used to train each SAE. Once the SAE was trained, the decoder portion of the network was removed and the encoding layer was used as a feature extractor. The encoded features were passed to an output layer of 10 units for classification. The encoding layer was not updated when training the MLP. 
+	
+	The second approach used a CNN network based on an example model\cite{paszke_2016} and the architecture is shown in Figure \ref{fig:CNN}. The network consisted of 2 convolution layers (with max pooling and relu) for feature extraction. The features from the CNN were then passed to a fully connected layer and output layer for classification.  To improve the generalization of the model, dropout ($p=.5$) was added to the fully connected layer. The two approaches were compared to determine if the semi-supervised (SAE + MLP) or supervised (CNN) method performed well for classification. 
+
+	Fashion-MNIST consists of 60,000 training and 10,000 test images. The training data was partitioned into 90\% for training and 10\% for validation using a stratified split to mitigate some bias and variance in each model as well as maintain class balance among the dataset. Also, for a fair comparison of each model, each fold contained the same data (set the random seed to be the same before data split). The training settings for each model were the following: cross entropy loss function, learning rate ($\eta$) = .001, Adam\cite{kingma2014adam} optimization, number of epochs = 50, and batch size = 512. The model that achieved the best validation accuracy was saved during training. Each network was then applied to the holdout test set to further evaluate performance.
+	
+\begin{figure*}[t]
+	\centering
+	\begin{subfigure}{.80\textwidth}{
+			\includegraphics[width=\textwidth]{Images/SAE_architecture.png}
+			\caption{SAE architecture with M units in the bottleneck layer.}
+			\label{fig:SAE}
+		}
+	\end{subfigure}
+
+
+	\begin{subfigure}{.80\textwidth}{
+			\includegraphics[width=\textwidth]{Images/CNN_architecture.png}
+			\caption{CNN classifier architecture}
+			\label{fig:CNN}
+		}
+	\end{subfigure}
+	
+	\caption{Network architectures for SAE and CNN models.}
+	\centering
+	\label{fig:CM}
+\end{figure*}
+ 
+	For the last approach, IT losses were used to train each model. The encoding structure of the network from the first experiment was kept the same and an output layer of 10 units was added to map the bottleneck layer's features to the same dimension as the number of classes in the dataset. On the output layer, a simple maximum a posteriori (MAP)rule was used to classify the outputs of the layer. The IT losses used were maximum cross entropy (XEnt) and maximum mutual information (MMI). To estimate mutual information, quadratic mutual information (QMI) was implemented \cite{principe2010information}. For each method, a bandwidth value needs to be selected. To estimate the bandwidth, Silverman's rule \cite{silverman1986density} and Santos et al.'s formula\cite{santos2004error}. Initial experiments were conducted with the initial estimates using each method, but the bandwidths were small resulting in little gradient information to update the weights of the model. The values of Silverman and Santos bandwidth were multiplied by 300 and 30 respectively (determined empirically). The two bandwidth values used for the experiments were 10.56 for Silverman and 9.68 for Santos.
+
+	For each ITL loss, class information is needed. The labels for each image were initially encoded as one-hot vectors. As suggested in the project description, a 10-dimensional Gaussian distribution was applied at the location of the "1" for correct class. Both encoding techniques were studied in this work to evaluate the performance. The same training, validation, and test data was used for the ITL models as before for a fair comparison to the models not trained with IT criterion.
+	  
+\section{Results}
+\begin{table*}[htb!]
+	\centering
+	\caption{Performance metrics for SAE architectures}
+	\label{tab:SAE_construct}
+	\begin{tabular}{|c|c|c|c|}
+		\hline
+		Bottleneck Size & Number of Parameters & MSE Validation Loss & Computation Time \\ \hline
+		100             & 1,026,284            & 9.05e-03            & 376.65 s         \\ \hline
+		50              & 1,006,234            & 9.52e-03            & 373.56 s         \\ \hline
+		25              & 996,209              & 1.03e-02            & 372.02 s         \\ \hline
+		12              & 990,996              & 1.36e-02            & 375.65 s         \\ \hline
+		2               & 986,986              & 3.61e-02            & 374.29 s         \\ \hline
+	\end{tabular}
+\end{table*}
+\begin{figure*}[t]
+	\begin{subfigure}{.16\textwidth}{
+		\includegraphics[width=\textwidth]{Images/Train_example.png}
+		\caption{Original Image}
+		\label{fig:toy_img}
+	}
+	\end{subfigure}
+	\begin{subfigure}{.16\textwidth}{
+			\includegraphics[width=\textwidth]{Images/Bottleneck_Reconstruction_2.png}
+			\caption{Bottleneck = 2}
+			\label{fig:BN2}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.16\textwidth}{
+			\includegraphics[width=\textwidth]{Images/Bottleneck_Reconstruction_12.png}
+			\caption{Bottleneck = 12}
+			\label{fig:BN12}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.16\textwidth}{
+			\includegraphics[width=\textwidth]{Images/Bottleneck_Reconstruction_25.png}
+			\caption{Bottleneck = 25}
+			\label{fig:BN25}
+		}
+	\end{subfigure} 
+	\begin{subfigure}{.16\textwidth}{
+		\includegraphics[width=\textwidth]{Images/Bottleneck_Reconstruction_50.png}
+		\caption{Bottleneck = 50}
+		\label{fig:BN50}
+	}
+\end{subfigure} 
+	\begin{subfigure}{.16\textwidth}{
+		\includegraphics[width=\textwidth]{Images/Bottleneck_Reconstruction_100.png}
+		\caption{Bottleneck = 100}
+		\label{fig:BN100}
+	}
+\end{subfigure} 
+	
+	\caption{Reconstruction of Example Validation Image}
+	\centering
+	\label{fig:LC}
+\end{figure*} 
+
+
+\begin{figure*}[htb!]
+	\begin{subfigure}{.49\textwidth}{
+			\includegraphics[width=\textwidth]{Images/CM_SAEMLP.png}
+			\caption{SAE\_100\_MLP Confusion Matrix (Acc: 83.02\%)}
+			\label{fig:CM_SAEMLP}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.49\textwidth}{
+			\includegraphics[width=\textwidth]{Images/CM_CNN.png}
+			\caption{CNN Confusion Matrix (Acc: 91.68\%)}
+			\label{fig:CM_CNN}
+		}
+	\end{subfigure}
+~
+	\begin{subfigure}{.49\textwidth}{
+		\includegraphics[width=\textwidth]{Images/TSNE_SAEMLP.png}
+		\caption{t-SNE of SAE\_100\_MLP features}
+		\label{fig:TSNE_SAEMLP}
+	}
+\end{subfigure}
+\begin{subfigure}{.49\textwidth}{
+		\includegraphics[width=\textwidth]{Images/TSNE_CNN.png}
+		\caption{t-SNE of CNN features}
+		\label{fig:TSNE_CNN}
+	}
+\end{subfigure}
+	
+	\caption{Test Confusion Matrices and t-SNE visual of features before classification component of each model.}
+	\centering
+	\label{fig:NonIT}
+\end{figure*}
+
+
+\begin{table*}[htb!]
+	\centering
+	\caption{Classification performance of CNN and SAE+MLP classifiers}
+	\label{tab:Method1}
+	\begin{tabular}{|c|c|c|c|c|}
+		\hline
+		Model         & Number of Parameters & Validation Accuracy & Test Accuracy & Computation Time \\ \hline
+		CNN           & 184,586              & 93.00\%             & 91.68\%       & 601.72 s         \\ \hline
+		SAE\_100\_MLP & 1,010                & 85.00\%             & 83.02\%       & 337.14 s         \\ \hline
+		SAE\_50\_MLP  & 510                  & 84.00\%             & 81.61\%       & 336.81 s         \\ \hline
+		SAE\_25\_MLP  & 260                  & 83.00\%             & 80.39\%       & 341.90 s         \\ \hline
+		SAE\_12\_MLP  & 130                  & 76.00\%             & 74.67\%       & 338.40 s         \\ \hline
+		SAE\_2\_MLP   & 30                   & 43.00\%             & 43.22\%       & 337.47 s         \\ \hline
+	\end{tabular}
+\end{table*}
+
+\begin{figure*}[htb!]
+	\begin{subfigure}{.49\textwidth}{
+			\includegraphics[width=\textwidth]{Images/CM_QMI.png}
+			\caption{QMI Encoder\_50\_MLP Confusion Matrix (Acc: 84.39\%)}
+			\label{fig:CM_QMI}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.49\textwidth}{
+			\includegraphics[width=\textwidth]{Images/CM_XEnt.png}
+			\caption{XEnt Encoder\_100\_MLP Confusion Matrix (Acc: 88.16\%)}
+			\label{fig:CM_XEnt}
+		}
+	\end{subfigure}
+	~
+	\begin{subfigure}{.49\textwidth}{
+			\includegraphics[width=\textwidth]{Images/TSNE_QMI.png}
+			\caption{t-SNE of QMI Encoder\_50\_MLP features}
+			\label{fig:TSNE_QMI}
+		}
+	\end{subfigure}
+	\begin{subfigure}{.49\textwidth}{
+			\includegraphics[width=\textwidth]{Images/TSNE_XEnt.png}
+			\caption{t-SNE of XEnt Encoder\_100\_MLP features}
+			\label{fig:TSNE_XEnt}
+		}
+	\end{subfigure}
+	
+	\caption{Test Confusion Matrices and t-SNE of features before classification component of each IT trained model.}
+	\centering
+	\label{fig:IT_results}
+\end{figure*}
+
+\begin{table*}[htb!]
+	\centering
+	\caption{Testing Accuracy and Training/Validation Computation Time for Methods Using Santos Bandwidth}
+	\begin{tabular}{|c|c|c|c|c|}
+		\hline
+		Bandwidth             & \multicolumn{4}{c|}{Santos}                                                       \\ \hline
+		Encoding              & \multicolumn{2}{c|}{One Hot}            & \multicolumn{2}{c|}{Gaussian}           \\ \hline
+		IT Loss Function      & QMI                & XEnt               & QMI               & XEnt                \\ \hline
+		Bottleneck Size = 100 & 82.02\% (146.43 s) & 87.56\% (127.01 s) & 80.41\% (146.75 s) & 87.82\% (127.32 s) \\ \hline
+		Bottleneck Size = 50  & 83.22\% (145.98 s) & 10.09\% (125.78 s) & 84.39\% (146.62 s) & 10.00\% (126.74 s) \\ \hline
+		Bottleneck Size = 25  & 80.07\% (147.48 s) & 10.00\% (126.61 s) & 83.82\% (147.30 s) & 10.00\% 125.84 s)  \\ \hline
+		Bottleneck Size = 12  & 73.35\% (146.32 s) & 10.00\% (126.17 s) & 68.28\% (146.35 s) & 10.00\% (126.55 s) \\ \hline
+		Bottleneck Size = 2   & 10.00\% (146.25 s) & 10.00\% (126.50 s) & 28.51\% (146.76 s) & 10.00\% (126.04 s) \\ \hline
+	\end{tabular}
+	\label{tab:Method2}
+\end{table*}
+
+\begin{table*}[htb!]
+	\centering
+	\caption{Testing Accuracy and Training/Validation Computation Time for Methods Using Silverman Bandwidth}
+	\begin{tabular}{|c|c|c|c|c|}
+		\hline
+		Bandwidth             & \multicolumn{4}{c|}{Silverman}                                                                         \\ \hline
+		Encoding              & \multicolumn{2}{c|}{One Hot}                                 & \multicolumn{2}{c|}{Gaussian}           \\ \hline
+		IT Loss Function      & QMI                & XEnt                                    & QMI                & XEnt               \\ \hline
+		Bottleneck Size = 100 & 82.42\% (146.21 s) & 87.86\% (131.82 s)                      & 83.65\% (147.82 s) & 88.16\% (128.97 s) \\ \hline
+		Bottleneck Size = 50  & 81.30\% (146.34 s) & \multicolumn{1}{l|}{10.00\% (126.38 s)} & 82.67\% (146.45 s) & 10.00\% (126.45 s) \\ \hline
+		Bottleneck Size = 25  & 81.97\% (146.30 s) & 10.00\% (126.56 s)                      & 82.49\% (146.45 s) & 10.00\% (125.85 s) \\ \hline
+		Bottleneck Size = 12  & 70.44\% (146.33 s) & 10.00\% (126.16 s)                      & 81.62\% (146.53 s) & 10.00\% (126.13 s) \\ \hline
+		Bottleneck Size = 2   & 18.21\% (146.57 s) & 10.00\% (126.21 s)                      & 10.00\% (146.83 s) & 10.00\% (126.91 s) \\ \hline
+	\end{tabular}
+	\label{tab:Method3}
+\end{table*}
+
+The results of the SAE reconstruction are shown in Table \ref{tab:SAE_construct} and an example image is shown in Figure \ref{fig:LC}. The confusion matrices and t-SNE visualizations for the best classification method for non IT and IT are shown in Figures \ref{fig:NonIT} and \ref{fig:IT_results}. The accuracy and training/validation time for the non IT models is captured in Table \ref{tab:Method1} and the IT models with different bandwidths in Tables \ref{tab:Method2} through \ref{tab:Method3}.   
+
+
+\section{Discussion}
+	For method 1, the reconstruction results shown in \ref{tab:SAE_construct} follow a trend. As the bottleneck size decreases, the MSE validation loss increases. This results indicates that as the code gets smaller, the model is losing more information needed to fully reconstruct the input image. As shown in Figure \ref{fig:LC}, the reconstruction for the smallest bottleneck does not retain any information about the input image of a shirt. The other recontructed images mainly retain the shape information of the image but remove the fine details of the image.
+	
+	The encoding models trained in method 1 were used as a feature extractor for an MLP classifier. Method 1 was compared to a CNN classifier (method 2) and the results shown in Table \ref{tab:Method1}. The CNN network performed better and a possible reason for this is that the features learned by the CNN network are for discrimination while the features learned by the SAE were for dimensionality reduction. Despite this possibility, the features from the SAE performed well with the best SAE features extracted from the model with a bottleneck size of 100. Also, for the confusion matrices shown in Figure \ref{fig:NonIT}, the CNN also performed better on each class but both networks misclassified the same number of t-shirts/tops as shirts. This makes sense because these features are very similar. The features of each approach were visualized using t-SNE in Figures \ref{fig:TSNE_SAEMLP} and \ref{fig:TSNE_CNN}. The features for each class for the CNN model appear to be slightly more separable than the features from the SAE\_100\_MLP which may describe the better performance. In future works, MLP networks with more layers could be used and/or the encoding portion of the SAE could be jointly fine-tuned with the MLP to improve performance.
+	
+	The IT models used in method 3 achieved comparable performance with the non IT models with some models performing better than the SAE\_M\_MLP models. The selection of bandwidths using Santos or Silverman's rule achieved comparable performance since the two values were close (9.68 and 10.56 respectively). Also, the Gaussian encoding assisted in boosting performance of the two loss functions. From Tables \ref{tab:Method2} and \ref{tab:Method3}, XEnt achieved the highest test accuracy (88.16\%) but QMI was more robust to changes in the bottleneck layer. A possible reason for this is that XEnt only attempts to maximize the cross information between the output and desired while QMI not only maximizes the cross information but minimizes the conditional entropies of the desired and outputs of the network. This may be observed in the t-SNE plots. For the QMI, it appears the classes are more compact and separated than the XEnt features which are compact but not as well separated. For each IT criterion, both models do perform better on classifying a shirt correctly as opposed to a t-shirt/top and this shows a benefit of backpropogating information as opposed to standard loss functions which may confuse closely related classes.
+
+\section{Conclusion}
+	In this project, machine learning methods for classifcation were studied. As a result of the experiments, each method: semi-supervised (SAE\_M\_MLPs), supervised (CNN), and IT supervised (XEnt and QMI MLPs), can achieve comparable performance which each approach having strengths and weaknesses (no free lunch). Future studies include investigating other bottleneck sizes, architectures, bandwidths and also varying training settings improve performance of the model.
+\bibliographystyle{IEEEtran}
+\bibliography{egbib}
+
+
+\end{document}
